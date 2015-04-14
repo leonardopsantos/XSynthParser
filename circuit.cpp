@@ -8,6 +8,8 @@
 
 #include "circuit.h"
 
+#include <boost/graph/graphviz.hpp>
+
 using namespace std;
 
 
@@ -438,7 +440,22 @@ void Circuit::addToGraph(vector<Component*> outputs, int depth)
 	return;
 }
 
+template <class Name>
+class myEdgeWriter {
+public:
+     myEdgeWriter(Name _name, vector<Entity*> _allIn) : allIn(_allIn) {
+     }
+     template <class VertexOrEdge>
+     void operator()(std::ostream& out, const VertexOrEdge& v) const {
+            out << "[label=" << allIn[v]->name << "]";
+     }
+private:
+     vector<Entity*> allIn;
+};
+
 void Circuit::buildPIsGraph() {
+
+	myEdgeWriter<circGraph_t> w(this->circGraph, this->allIn);
 
 	for(int pi=0; pi<PIs.size(); pi++) {
 		Net *n = PIs[pi];
@@ -452,6 +469,7 @@ void Circuit::buildPIsGraph() {
 		}
 	}
 
+#if 0
 	circGraph_t::vertex_iterator vertexIt, vertexEnd;
 	circGraph_t::adjacency_iterator neighbourIt, neighbourEnd;
 	tie(vertexIt, vertexEnd) = vertices(this->circGraph);
@@ -464,4 +482,8 @@ void Circuit::buildPIsGraph() {
 	    	cout <<this->allIn[*neighbourIt]->name << " ";
 	    cout << "\n";
 	}
+#endif
+
+	std::ofstream dot("graph.dot");
+	boost::write_graphviz(dot, this->circGraph, w);
 }

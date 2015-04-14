@@ -17,3 +17,7 @@ all: $(OBJS)
 .PHONY: clean
 clean:
 	rm -f *.o parser
+
+.PHONY: dot
+dot:
+	dot -Tpng graph.dot -o graph.png
