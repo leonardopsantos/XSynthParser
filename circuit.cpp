@@ -398,6 +398,9 @@ void FlipFlop::print(FILE* outfile){
 
 }
 
+Circuit::Circuit(){
+}
+
 void Circuit::printPIs() {
 	for(std::vector<Net*>::iterator it = PIs.begin(); it != PIs.end(); ++it) {
 		Net *n = *it;
@@ -405,10 +408,60 @@ void Circuit::printPIs() {
 	}
 }
 
-void Circuit::buildPIsGraph() {
-	for(std::vector<Net*>::iterator it = PIs.begin(); it != PIs.end(); ++it) {
-		Net *n = *it;
-	    cout << "PI: " << n->name << endl;
+void Circuit::addToGraph(vector<Component*> outputs, int depth)
+{
+	for(int ci=0; ci < outputs.size(); ci++) {
+		Component *c = outputs[ci];
+		for(int i = 0; i < depth; i++)
+			cout << "\t";
+		cout << "Component " << c->name << endl;
+		for(int ni=0; ni < c->outputs.size(); ni++) {
+			Net *n = c->outputs[ni];
+			for(int i = 0; i < depth; i++)
+				cout << "\t";
+			cout << "Net " << n->name << endl;
+			if( n->isPO == false ) {
+				addToGraph(n->outputs, depth+1);
+			} else {
+				add_edge (c->key, n->key, this->circGraph);
+				cout << "add_edge ("<< c->name <<"(" << c->key << "), "<< n->name <<"(" << n->key << ")" << ", this->circGraph);"<< endl;
+				return;
+			}
+			for(int xi=0; xi < n->outputs.size(); xi++) {
+				Component *cx = n->outputs[xi];
+				add_edge (c->key, cx->key, this->circGraph);
+				cout << "add_edge ("<< c->name <<"(" << c->key << "), "<< cx->name <<"(" << cx->key << ")" << ", this->circGraph);"<< endl;
+			}
+		}
+	}
 
+	return;
+}
+
+void Circuit::buildPIsGraph() {
+
+	for(int pi=0; pi<PIs.size(); pi++) {
+		Net *n = PIs[pi];
+		cout << "PI: " << n->name << endl;
+		addToGraph(n->outputs, 1);
+
+		for(int xi=0; xi < n->outputs.size(); xi++) {
+			Component *cx = n->outputs[xi];
+			add_edge (n->key, cx->key, this->circGraph);
+			cout << "add_edge ("<< n->name <<"(" << n->key << "), "<< cx->name <<"(" << cx->key << ")" << ", this->circGraph);"<< endl;
+		}
+	}
+
+	circGraph_t::vertex_iterator vertexIt, vertexEnd;
+	circGraph_t::adjacency_iterator neighbourIt, neighbourEnd;
+	tie(vertexIt, vertexEnd) = vertices(this->circGraph);
+	for (; vertexIt != vertexEnd; ++vertexIt) {
+//		cout << *vertexIt << " is connected with ";
+		cout <<this->allIn[*vertexIt]->name << " is connected with ";
+	    tie(neighbourIt, neighbourEnd) = adjacent_vertices(*vertexIt, this->circGraph);
+	    for (; neighbourIt != neighbourEnd; ++neighbourIt)
+//	    	cout << *neighbourIt << " ";
+	    	cout <<this->allIn[*neighbourIt]->name << " ";
+	    cout << "\n";
 	}
 }

@@ -35,6 +35,7 @@ void XSynthParser::parse(char *filename, Circuit &circ)
 	
 	inFile.open(filename);
 	
+	circ.allIn.clear();
 	circ.components.clear();
 	circ.nets.clear();
 	circ.luts.clear();
@@ -83,9 +84,11 @@ void XSynthParser::parse(char *filename, Circuit &circ)
 				if(direction[0] == 'i'){
 					newNet->isPI = true;
 					circ.PIs.push_back(newNet);
+					circ.allIn.push_back(newNet);
 				} else {
 					newNet->isPO = true;
 					circ.POs.push_back(newNet);
+					circ.allIn.push_back(newNet);
 				}
 				circ.nets.push_back(newNet);
 				//the symbolTable must maintain the original name, i.e., as if using STD_LOGIC_VECTOR
@@ -103,9 +106,11 @@ void XSynthParser::parse(char *filename, Circuit &circ)
 			if(direction[0] == 'i') {
 				newNet->isPI = true;
 				circ.PIs.push_back(newNet);
+				circ.allIn.push_back(newNet);
 			} else {
 				newNet->isPO = true;
 				circ.POs.push_back(newNet);
+				circ.allIn.push_back(newNet);
 			}
 			circ.nets.push_back(newNet);
 			symbolTable[newNet->name] = newNet;
@@ -198,6 +203,7 @@ void XSynthParser::parse(char *filename, Circuit &circ)
 					newLut->outputs.push_back(netTarg);
 					netTarg->setInput(newLut);
 					circ.luts.push_back(newLut);
+					circ.allIn.push_back(newLut);
 					inFile.getline(buf, BUF_SIZE); //skips ");"
 					break;
 				
@@ -221,7 +227,8 @@ void XSynthParser::parse(char *filename, Circuit &circ)
 					if(netTarg->isPO){
 						circ.components.push_back(newBuf);
 						nextComp++;
-					}					
+					}
+					circ.allIn.push_back(newBuf);
 					
 					inFile.getline(buf, BUF_SIZE); //skips ");"
 					break;
@@ -260,6 +267,7 @@ void XSynthParser::parse(char *filename, Circuit &circ)
 					netTarg->setInput(newMux);
 					
 					circ.components.push_back(newMux);
+					circ.allIn.push_back(newMux);
 					
 					inFile.getline(buf, BUF_SIZE); //skips ");"				
 					break;
@@ -284,7 +292,8 @@ void XSynthParser::parse(char *filename, Circuit &circ)
 					netTarg = symbolTable[name];
 					newLut->outputs.push_back(netTarg);
 					netTarg->setInput(newLut);
-					circ.luts.push_back(newLut);					
+					circ.luts.push_back(newLut);
+					circ.allIn.push_back(newLut);
 					
 					inFile.getline(buf, BUF_SIZE); //skips ");"
 					break;
@@ -312,6 +321,7 @@ void XSynthParser::parse(char *filename, Circuit &circ)
 					netTarg->setInput(newXor);
 					
 					circ.components.push_back(newXor);
+					circ.allIn.push_back(newXor);
 					
 					inFile.getline(buf, BUF_SIZE); //skips ");"
 					
@@ -357,6 +367,7 @@ void XSynthParser::parse(char *filename, Circuit &circ)
 					netTarg->setInput(newFF);
 					
 					circ.ffs.push_back(newFF);
+					circ.allIn.push_back(newFF);
 					inFile.getline(buf, BUF_SIZE); //skips ");"		
 					break;
 				
@@ -406,6 +417,7 @@ void XSynthParser::parse(char *filename, Circuit &circ)
 					netTarg->setInput(newFF);
 					
 					circ.ffs.push_back(newFF);
+					circ.allIn.push_back(newFF);
 					inFile.getline(buf, BUF_SIZE); //skips ");"		
 					break;
 				
@@ -461,6 +473,7 @@ void XSynthParser::parse(char *filename, Circuit &circ)
 					netTarg->setInput(newFF);
 					
 					circ.ffs.push_back(newFF);
+					circ.allIn.push_back(newFF);
 					inFile.getline(buf, BUF_SIZE); //skips ");"		
 					break;
 					
@@ -505,6 +518,7 @@ void XSynthParser::parse(char *filename, Circuit &circ)
 					netTarg->setInput(newFF);
 					
 					circ.ffs.push_back(newFF);
+					circ.allIn.push_back(newFF);
 					inFile.getline(buf, BUF_SIZE); //skips ");"		
 					break;
 				
@@ -565,6 +579,7 @@ void XSynthParser::parse(char *filename, Circuit &circ)
 			
 			//if(netTarg->isPO){
 				circ.components.push_back(newShort);
+				circ.allIn.push_back(newShort);
 			//	nextComp++;
 			//}
 		}
@@ -618,6 +633,12 @@ void XSynthParser::parse(char *filename, Circuit &circ)
 	
 	for(i=0; i<circ.components.size(); i++)
 		circ.components[i]->id = i;
+
+	for(i=0; i<circ.allIn.size(); i++) {
+		circ.allIn[i]->key = i;
+		cout << circ.allIn[i]->name << ".key = " << circ.allIn[i]->key << endl;
+	}
+	cout << endl << endl;
 }
 /*************************************************************************/
 void XSynthParser::getNetName(char *src, char *dst){
@@ -709,7 +730,7 @@ void XSynthParser::bufCleanup(Net* driver, Net* load){
 	int i, j, k;
 	
 	if(!load->isPO){
-		foreach(Component* comp2, load->outputs)
+		BOOST_FOREACH(Component* comp2, load->outputs)
 			if(comp2->type == BUF || comp2->type == SHORT)
 				bufCleanup(driver, comp2->outputs[0]);
 		

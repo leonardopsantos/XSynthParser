@@ -16,6 +16,9 @@
 #include <iostream>
 #include <cstdlib>
 #include <cstdio>
+
+#include <boost/graph/adjacency_list.hpp>
+
 #include "common.h"
 
 using namespace std;
@@ -44,9 +47,15 @@ enum compType { LUT, LUT6, LUT5, MUXF7, MUXF8, MUXCY, XORCY, MUX, BUF, INV, FDR,
 //VARSIG: regular signal with variable value
 enum sigVal { GND, VCC, VARSIG };
 
+class Entity {
+	public:
+		unsigned key; //component's key in the circuit
+		string name; // name
+};
+
 class Net;
 
-class Component {
+class Component : public Entity {
 	public:
 		unsigned id; //component's id (internal)
 		compType type; //component's type
@@ -57,8 +66,7 @@ class Component {
 		Component(); //constructor with no arguments (called automatically when instantiating subclasses)
 		
 		float depth;
-	
-		string name; //The LUT's name
+
 		int locX; //The X position of the slice this LUT is in
 		int locY; //The Y position of the slice this LUT is in
 		virtual void print(FILE* outfile); //prints the VHDL instantiation of this component
@@ -123,7 +131,7 @@ class Short: public Component {
 		void print(FILE* outfile); //prints a VHDL "short circuit" (a signal assignment)
 };
 
-class Net {
+class Net : public Entity {
 	public:
 		unsigned id; //Net's id
 		
@@ -133,8 +141,6 @@ class Net {
 		vector<Component*> outputs; //Components that read this signal
 		Component* input; //The component that drives this signal
 		
-		string name;
-		
 		sigVal value; //if this net has a constant value or if it is variable
 		
 		Net(string netName, unsigned netId); //class constructor
@@ -143,9 +149,14 @@ class Net {
 		string getName(); //gets the net name, with the "internal_" prefix, if required
 };
 
+using namespace boost;
+//typedef boost::adjacency_list<listS, vecS, directedS> circGraph_t;
+typedef boost::adjacency_list<setS, vecS, directedS> circGraph_t;
+
 class Circuit {
 	public:
-		vector<Component*> components; //components (combinational and that are not LUTs)
+		vector<Entity*> allIn; // everything, for the connection graph
+		vector<Component*> components; //components
 		vector<Lut*> luts; //LUT-only vector
 		vector<Net*> nets;
 		vector<FlipFlop*> ffs;
@@ -163,8 +174,15 @@ class Circuit {
 	
 		string name;
 
+		circGraph_t circGraph;
+
+		Circuit(); //class constructor
+
 		void printPIs();
 		void buildPIsGraph();
+
+	protected:
+		void addToGraph(vector<Component*> outputs, int depth);
 };
 
 #endif
