@@ -2,9 +2,6 @@
 #ifndef _INCLUDED_COMMON_H_
 #define _INCLUDED_COMMON_H_
 
-#include <boost/foreach.hpp>
-using namespace boost;
-#define foreach BOOST_FOREACH
 #define MAX(a, b) ((a > b) ? a : b)
 #define dbprint(a) cout << #a << " = " << a << endl
 

@@ -6,6 +6,10 @@
  */
 /*************************************************************************/
 
+#include <boost/foreach.hpp>
+//using namespace boost;
+//#define foreach BOOST_FOREACH
+
 #include "XSynthParser.h"
 
 using namespace std;
